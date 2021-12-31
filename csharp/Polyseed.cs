@@ -41,13 +41,37 @@ namespace PolyseedSharp
 
         public DateTimeOffset Birthday => DateTimeOffset.FromUnixTimeSeconds(polyseed_get_birthday(this));
 
-        public static Polyseed Create()
+        private static void CheckEnum<TFeatures>()
+            where TFeatures : Enum
+        {
+            if (!typeof(TFeatures).IsDefined(typeof(FlagsAttribute), false))
+            {
+                throw new ArgumentException($"Type {typeof(TFeatures)} must have the Flags attribute");
+            }
+        }
+
+        public static int EnableFeatures<TFeatures>()
+            where TFeatures : Enum
+        {
+            CheckEnum<TFeatures>();
+            uint features = 0;
+            foreach(var feature in Enum.GetValues(typeof(TFeatures)))
+            {
+                features |= Convert.ToUInt32(feature);
+            }
+            return polyseed_enable_features(features);
+        }
+
+        public static Polyseed Create<TFeatures>(TFeatures features)
+            where TFeatures : Enum
         {
             Dependency.Init();
-            var ptr = polyseed_create();
-            if (ptr == IntPtr.Zero)
+            CheckEnum<TFeatures>();
+            IntPtr ptr = IntPtr.Zero;
+            var status = polyseed_create(Convert.ToUInt32(features), ref ptr);
+            if (status != Status.OK)
             {
-                throw new PolyseedException(Status.ERR_MEMORY);
+                throw new PolyseedException(status);
             }
             return new Polyseed(ptr);
         }
@@ -80,6 +104,13 @@ namespace PolyseedSharp
                 }
                 return new Polyseed(seedPtr);
             }
+        }
+
+        public bool HasFeature<TFeatures>(TFeatures feature)
+            where TFeatures : Enum
+        {
+            CheckEnum<TFeatures>();
+            return polyseed_get_feature(this, Convert.ToUInt32(feature)) != 0;
         }
 
         public unsafe void GenerateKey(Coin coin, Span<byte> key)
@@ -136,13 +167,19 @@ namespace PolyseedSharp
         }
 
         [DllImport(LibName)]
-        static extern IntPtr polyseed_create();
+        static extern int polyseed_enable_features(uint features);
+
+        [DllImport(LibName)]
+        static extern Status polyseed_create(uint features, ref IntPtr seed_out);
 
         [DllImport(LibName)]
         static extern void polyseed_free(IntPtr handle);
 
         [DllImport(LibName)]
         static extern long polyseed_get_birthday(Polyseed seed);
+
+        [DllImport(LibName)]
+        static extern uint polyseed_get_feature(Polyseed seed, uint mask);
 
         [DllImport(LibName)]
         static extern unsafe void polyseed_keygen(Polyseed seed, Coin coin,

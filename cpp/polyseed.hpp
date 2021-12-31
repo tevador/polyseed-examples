@@ -69,6 +69,12 @@ namespace polyseed {
             polyseed_status m_status;
     };
 
+    using feature_type = unsigned int;
+
+    inline int enable_features(feature_type features) {
+        return polyseed_enable_features(features);
+    }
+
     class data {
         public:
             data(const data&) = delete;
@@ -77,7 +83,7 @@ namespace polyseed {
                 polyseed_free(m_data);
             }
 
-            void create();
+            void create(feature_type features);
 
             void load(polyseed_storage storage);
 
@@ -117,11 +123,16 @@ namespace polyseed {
                 check_valid();
                 return polyseed_is_encrypted(m_data);
             }
+
             uint64_t birthday() const {
                 check_valid();
                 return polyseed_get_birthday(m_data);
             }
 
+            bool has_feature(feature_type feature) const {
+                check_valid();
+                return polyseed_get_feature(m_data, feature) != 0;
+            }
         private:
             void check_valid() const {
                 if (m_data == nullptr) {

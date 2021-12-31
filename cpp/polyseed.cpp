@@ -133,11 +133,11 @@ namespace polyseed {
         return error("Unknown error", status);
     }
 
-    void data::create() {
+    void data::create(feature_type features) {
         check_init();
-        m_data = polyseed_create();
-        if (m_data == nullptr) {
-            throw get_error(POLYSEED_ERR_MEMORY);
+        auto status = polyseed_create(features, &m_data);
+        if (status != POLYSEED_OK) {
+            throw get_error(status);
         }
     }
 

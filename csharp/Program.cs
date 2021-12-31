@@ -27,61 +27,83 @@
 using PolyseedSharp;
 using System.Text;
 
-Console.OutputEncoding = Encoding.UTF8;
-
-const string password = "password123";
-string phrase;
-
-//create a new seed
-Console.WriteLine("Generating new seed...");
-using (var seed1 = Polyseed.Create())
+static class Program
 {
-    //generate a key from the seed
-    Span<byte> key1 = stackalloc byte[32];
-    seed1.GenerateKey(Coin.MONERO, key1);
-    Console.WriteLine($"Private key: {Convert.ToHexString(key1).ToLower()}");
-
-    //protect the seed with a password
-    Console.WriteLine($"Encrypting with password '{password}' ...");
-    seed1.Crypt(password);
-
-    //encode into a mnemonic phrase
-    phrase = seed1.ToString(Language.List.Single(x => x.Name == "English"), Coin.MONERO);
-    Console.WriteLine($"Mnemonic: {phrase}");
-}
-
-Console.WriteLine("-------------------------------------------------");
-
-//decode a seed from the phrase
-Console.WriteLine("Decoding mnemonic phrase...");
-
-Polyseed seed2;
-try
-{
-    seed2 = Polyseed.Parse(phrase, Coin.MONERO, out Language lang);
-    Console.WriteLine($"Detected language: {lang}");
-}
-catch(PolyseedException ex)
-{
-    Console.WriteLine($"ERROR: {ex.Message}");
-    return 1;
-}
-
-using (seed2)
-{
-    Console.WriteLine($"Encrypted: {seed2.IsEncrypted}");
-
-    //decrypt
-    if (seed2.IsEncrypted)
+    [Flags]
+    enum MyFeatures
     {
-        Console.WriteLine($"Encrypting with password '{password}' ...");
-        seed2.Crypt(password);
+        None = 0,
+        Foo = 1,
+        Bar = 2,
+        //Qux = 4,
     }
 
-    //recover the key
-    Span<byte> key2 = stackalloc byte[32];
-    seed2.GenerateKey(Coin.MONERO, key2);
-    Console.WriteLine($"Private key: {Convert.ToHexString(key2).ToLower()}");
-}
+    static int Main(string[] args)
+    {
+        Console.OutputEncoding = Encoding.UTF8;
 
-return 0;
+        const string password = "password123";
+        string phrase;
+
+        Polyseed.EnableFeatures<MyFeatures>();
+
+        //create a new seed
+        Console.WriteLine("Generating new seed...");
+        using (var seed1 = Polyseed.Create(args.Length > 0 ? MyFeatures.Foo : MyFeatures.None))
+        {
+            //generate a key from the seed
+            Span<byte> key1 = stackalloc byte[32];
+            seed1.GenerateKey(Coin.MONERO, key1);
+            Console.WriteLine($"Private key: {Convert.ToHexString(key1).ToLower()}");
+
+            //protect the seed with a password
+            Console.WriteLine($"Encrypting with password '{password}' ...");
+            seed1.Crypt(password);
+
+            //encode into a mnemonic phrase
+            phrase = seed1.ToString(Language.List.Single(x => x.Name == "English"), Coin.MONERO);
+            Console.WriteLine($"Mnemonic: {phrase}");
+        }
+
+        Console.WriteLine("-------------------------------------------------");
+
+        //decode a seed from the phrase
+        Console.WriteLine("Decoding mnemonic phrase...");
+
+        Polyseed seed2;
+        try
+        {
+            seed2 = Polyseed.Parse(phrase, Coin.MONERO, out Language lang);
+            Console.WriteLine($"Detected language: {lang}");
+        }
+        catch (PolyseedException ex)
+        {
+            Console.WriteLine($"ERROR: {ex.Message}");
+            return 1;
+        }
+
+        using (seed2)
+        {
+            Console.WriteLine($"Encrypted: {seed2.IsEncrypted}");
+
+            if (seed2.HasFeature(MyFeatures.Foo))
+            {
+                Console.WriteLine($"Seed has the '{MyFeatures.Foo}' feature");
+            }
+
+            //decrypt
+            if (seed2.IsEncrypted)
+            {
+                Console.WriteLine($"Decrypting with password '{password}' ...");
+                seed2.Crypt(password);
+            }
+
+            //recover the key
+            Span<byte> key2 = stackalloc byte[32];
+            seed2.GenerateKey(Coin.MONERO, key2);
+            Console.WriteLine($"Private key: {Convert.ToHexString(key2).ToLower()}");
+        }
+
+        return 0;
+    }
+}

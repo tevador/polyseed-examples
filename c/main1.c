@@ -89,6 +89,10 @@ static const polyseed_lang* get_lang_by_name(const char* name) {
     return NULL;
 }
 
+#define FEATURE_FOO 1
+#define FEATURE_BAR 2
+#define FEATURE_QUX 4
+
 int main(int argc, char* argv[]) {
 
     if (sodium_init() == -1) {
@@ -98,11 +102,19 @@ int main(int argc, char* argv[]) {
 
     polyseed_init();
 
+    polyseed_enable_features(FEATURE_FOO | FEATURE_BAR);
+
     const char* password = "password123";
+    polyseed_status result;
+    polyseed_data* seed1;
 
     //create a new seed
     printf("Generating new seed...\n");
-    polyseed_data* seed1 = polyseed_create();
+    result = polyseed_create(argc > 1 ? FEATURE_FOO : 0, &seed1);
+    if (result != POLYSEED_OK) {
+        printf("ERROR: %i\n", result);
+        return 1;
+    }
 
     //generate a key from the seed
     uint8_t key1[32];
@@ -127,7 +139,7 @@ int main(int argc, char* argv[]) {
 
     //decode a seed from the phrase
     printf("Decoding mnemonic phrase...\n");
-    polyseed_status result;
+
     polyseed_data* seed2;
     const polyseed_lang* lang;
     result = polyseed_decode(phrase, POLYSEED_MONERO, &lang, &seed2);
@@ -138,6 +150,10 @@ int main(int argc, char* argv[]) {
     printf("Detected language: %s\n", polyseed_get_lang_name_en(lang));
 
     printf("Encrypted: %s\n", polyseed_is_encrypted(seed2) ? "true" : "false");
+
+    if (polyseed_get_feature(seed2, FEATURE_FOO)) {
+        printf("Seed has the 'Foo' feature\n");
+    }
 
     //decrypt
     if (polyseed_is_encrypted(seed2)) {
