@@ -100,7 +100,7 @@ namespace polyseed {
                 str.resize(size);
             }
 
-            void save(polyseed_storage storage) {
+            void save(polyseed_storage storage) const {
                 check_valid();
                 polyseed_store(m_data, storage);
             }
@@ -110,7 +110,7 @@ namespace polyseed {
                 polyseed_crypt(m_data, password);
             }
 
-            void keygen(void* ptr, size_t key_size) {
+            void keygen(void* ptr, size_t key_size) const {
                 check_valid();
                 polyseed_keygen(m_data, m_coin, key_size, (uint8_t*)ptr);
             }
@@ -139,7 +139,7 @@ namespace polyseed {
                     throw std::runtime_error("invalid object");
                 }
             }
-            void check_init();
+            void check_init() const;
 
             polyseed_data* m_data;
             polyseed_coin m_coin;

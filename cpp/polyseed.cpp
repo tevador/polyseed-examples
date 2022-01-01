@@ -110,7 +110,7 @@ namespace polyseed {
         return invalid_lang;
     }
 
-    inline void data::check_init() {
+    inline void data::check_init() const {
         if (valid()) {
             throw std::runtime_error("already initialized");
         }
@@ -142,6 +142,7 @@ namespace polyseed {
     }
 
     void data::load(polyseed_storage storage) {
+        check_init();
         auto status = polyseed_load(storage, &m_data);
         if (status != POLYSEED_OK) {
             throw get_error(status);
@@ -149,6 +150,7 @@ namespace polyseed {
     }
 
     language data::decode(const char* phrase) {
+        check_init();
         const polyseed_lang* lang;
         auto status = polyseed_decode(phrase, m_coin, &lang, &m_data);
         if (status != POLYSEED_OK) {
